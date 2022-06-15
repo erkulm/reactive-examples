@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 
@@ -73,9 +74,9 @@ class PersonRepositoryImplTest {
         Mono<List<Person>> personListMono = personFlux.collectList();
 
         personListMono.subscribe(list -> {
-           list.forEach(person -> {
-               System.out.println(person.toString());
-           });
+            list.forEach(person -> {
+                System.out.println(person.toString());
+            });
         });
     }
 
@@ -114,11 +115,28 @@ class PersonRepositoryImplTest {
         Mono<Person> personMono = personFlux.filter(person -> person.getId() == id).single();
 
         personMono.doOnError(throwable -> {
-            System.out.println("I went boom");
-        }).onErrorReturn(Person.builder().id(id).build())
+                    System.out.println("I went boom");
+                }).onErrorReturn(Person.builder().id(id).build())
                 .subscribe(person -> {
-            System.out.println(person.toString());
-        });
+                    System.out.println(person.toString());
+                });
+    }
+
+    @Test
+    void testGetById() {
+        final Mono<Person> testPerson1 = personRepository.getById(1);
+
+        StepVerifier.create(testPerson1).expectNextCount(1).verifyComplete();
+
+        StepVerifier.create(testPerson1).expectNextMatches(person -> person.getId() == 1
+                        && "Michael".equals(person.getFirstName()))
+                .verifyComplete();
+
+
+        final Mono<Person> testPerson2 = personRepository.getById(289);
+
+        StepVerifier.create(testPerson2).expectNextCount(0).verifyComplete();
+
     }
 }
 
